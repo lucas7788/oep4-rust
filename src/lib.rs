@@ -1,10 +1,10 @@
 #![no_std]
 #![feature(proc_macro_hygiene)]
 extern crate ontio_std as ostd;
-use ostd::abi::{Sink, Source};
+use ostd::abi::{EventBuilder, Sink, Source};
 use ostd::macros::base58;
-use ostd::macros::event;
 use ostd::prelude::*;
+use ostd::types::u128_to_neo_bytes;
 use ostd::{database, runtime};
 
 const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
@@ -16,7 +16,7 @@ const DECIMAL_MULTIPLIER: U128 = 100_000_000;
 const KEY_BALANCE: &[u8] = b"01";
 const KEY_APPROVE: &[u8] = b"02";
 
-const ADMIN: Address = base58!("AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p");
+const ADMIN: Address = base58!("AbtTQJYKfQxq4UdygDsbLVjE8uRrJ2H3tP");
 
 /**
      Initializes the contract
@@ -57,7 +57,12 @@ fn transfer(from: &Address, to: &Address, amount: U128) -> bool {
         database::put(utils::gen_balance_key(from), frmbal - amount);
     }
     database::put(utils::gen_balance_key(to), tobal + amount);
-    notify::transfer(from, to, amount);
+    EventBuilder::new()
+        .bytearray("transfer".as_bytes())
+        .bytearray(from.as_bytes())
+        .bytearray(to.as_bytes())
+        .bytearray(u128_to_neo_bytes(amount).as_slice())
+        .notify();
     true
 }
 
@@ -85,7 +90,12 @@ fn approve(owner: &Address, spender: &Address, amount: U128) -> bool {
     let allowance = allowance(owner, spender);
     let approve = amount + allowance;
     database::put(utils::gen_approve_key(owner, spender), approve);
-    notify::approval(owner, spender, approve);
+    EventBuilder::new()
+        .bytearray("approve".as_bytes())
+        .bytearray(owner.as_bytes())
+        .bytearray(spender.as_bytes())
+        .bytearray(u128_to_neo_bytes(amount).as_slice())
+        .notify();
     true
 }
 
@@ -109,7 +119,7 @@ fn allowance(owner: &Address, spender: &Address) -> U128 {
 fn transfer_from(spender: &Address, from: &Address, amount: U128) -> bool {
     assert!(runtime::check_witness(spender));
     let allowance = allowance(from, spender);
-    assert!(amount < allowance);
+    assert!(amount <= allowance);
     let from_balance = balance_of(from);
     assert!(from_balance >= amount);
     if amount == allowance {
@@ -132,15 +142,6 @@ fn transfer_from(spender: &Address, from: &Address, amount: U128) -> bool {
 */
 fn total_supply() -> U128 {
     database::get(KEY_TOTAL_SUPPLY).unwrap_or(0)
-}
-
-mod notify {
-    use super::*;
-    #[event]
-    pub fn transfer(from: &Address, to: &Address, amount: U128) {}
-
-    #[event]
-    pub fn approval(owner: &Address, spender: &Address, amount: U128) {}
 }
 
 #[no_mangle]
