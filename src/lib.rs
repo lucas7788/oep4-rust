@@ -8,15 +8,15 @@ use ostd::types::u128_to_neo_bytes;
 use ostd::{database, runtime};
 
 const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
-const NAME: &str = "wasm_token";
-const SYMBOL: &str = "WTK";
+const NAME: &str = "OpenKG_Token";
+const SYMBOL: &str = "OKT";
 const TOTAL_SUPPLY: U128 = 100_000_000_000;
 const DECIMAL_MULTIPLIER: U128 = 100_000_000;
 
 const KEY_BALANCE: &[u8] = b"01";
 const KEY_APPROVE: &[u8] = b"02";
 
-const ADMIN: Address = base58!("AbtTQJYKfQxq4UdygDsbLVjE8uRrJ2H3tP");
+const ADMIN: Address = base58!("Aejfo7ZX5PVpenRj23yChnyH64nf8T1zbu");
 
 /**
      Initializes the contract
@@ -29,6 +29,7 @@ fn initialize() -> bool {
     database::put(utils::gen_balance_key(&ADMIN), total);
     true
 }
+
 /**
     Returns the balance for the given address
     :param address: The address to check
