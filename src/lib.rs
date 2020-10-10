@@ -8,10 +8,10 @@ use ostd::types::u128_to_neo_bytes;
 use ostd::{database, runtime};
 
 const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
-const NAME: &str = "OpenKG_Token";
-const SYMBOL: &str = "OKT";
-const TOTAL_SUPPLY: U128 = 100_000_000_000;
-const DECIMAL_MULTIPLIER: U128 = 100_000_000;
+const NAME: &str = "Honor value";
+const SYMBOL: &str = "HV";
+const TOTAL_SUPPLY: U128 = U128::new(100_000_000_000);
+const DECIMAL_MULTIPLIER: U128 = U128::new(100_000_000);
 
 const KEY_BALANCE: &[u8] = b"01";
 const KEY_APPROVE: &[u8] = b"02";
@@ -22,9 +22,9 @@ const ADMIN: Address = base58!("Aejfo7ZX5PVpenRj23yChnyH64nf8T1zbu");
      Initializes the contract
 */
 fn initialize() -> bool {
-    assert_eq!(total_supply(), 0);
+    assert_eq!(total_supply(), U128::new(0));
     assert!(runtime::check_witness(&ADMIN));
-    let total = TOTAL_SUPPLY.checked_mul(DECIMAL_MULTIPLIER).unwrap();
+    let total = TOTAL_SUPPLY * DECIMAL_MULTIPLIER;
     database::put(KEY_TOTAL_SUPPLY, total);
     database::put(utils::gen_balance_key(&ADMIN), total);
     true
@@ -35,7 +35,7 @@ fn initialize() -> bool {
     :param address: The address to check
 */
 fn balance_of(addr: &Address) -> U128 {
-    database::get(utils::gen_balance_key(addr)).unwrap_or(0)
+    database::get(utils::gen_balance_key(addr)).unwrap_or(U128::new(0))
 }
 
 /**
@@ -48,7 +48,7 @@ fn balance_of(addr: &Address) -> U128 {
 fn transfer(from: &Address, to: &Address, amount: U128) -> bool {
     assert!(runtime::check_witness(from));
     let frmbal = balance_of(from);
-    if amount == 0 || frmbal < amount {
+    if amount == U128::new(0) || frmbal < amount {
         return false;
     }
     if frmbal == amount {
@@ -88,7 +88,7 @@ fn transfer_multi(states: &[(&Address, &Address, U128)]) -> bool {
 fn approve(owner: &Address, spender: &Address, amount: U128) -> bool {
     assert!(runtime::check_witness(owner));
     let approve_key = utils::gen_approve_key(owner, spender);
-    if amount == 0 {
+    if amount == U128::new(0) {
         database::delete(approve_key.as_slice());
     } else {
         database::put(approve_key.as_slice(), amount);
@@ -108,7 +108,7 @@ fn approve(owner: &Address, spender: &Address, amount: U128) -> bool {
     :param spender:  The spender address
 */
 fn allowance(owner: &Address, spender: &Address) -> U128 {
-    database::get(utils::gen_approve_key(owner, spender)).unwrap_or(0)
+    database::get(utils::gen_approve_key(owner, spender)).unwrap_or(U128::new(0))
 }
 
 /**
@@ -119,7 +119,7 @@ fn allowance(owner: &Address, spender: &Address) -> U128 {
     :param amount: The amounts of tokens being transferred
     Returns True on success, otherwise raises an exception
 */
-fn transfer_from(spender: &Address, from: &Address, to:&Address, amount: U128) -> bool {
+fn transfer_from(spender: &Address, from: &Address, to: &Address, amount: U128) -> bool {
     assert!(runtime::check_witness(spender));
     let allowance = allowance(from, spender);
     assert!(amount <= allowance);
@@ -144,7 +144,7 @@ fn transfer_from(spender: &Address, from: &Address, to:&Address, amount: U128) -
     Returns the total supply of the token
 */
 fn total_supply() -> U128 {
-    database::get(KEY_TOTAL_SUPPLY).unwrap_or(0)
+    database::get(KEY_TOTAL_SUPPLY).unwrap_or(U128::new(0))
 }
 
 #[no_mangle]
@@ -180,8 +180,8 @@ pub fn invoke() {
             sink.write(allowance(owner, spender));
         }
         b"transferFrom" => {
-            let (spender, from,to, amount) = source.read().unwrap();
-            sink.write(transfer_from(spender, from,to,amount));
+            let (spender, from, to, amount) = source.read().unwrap();
+            sink.write(transfer_from(spender, from, to, amount));
         }
         _ => panic!("unsupported action!"),
     }
@@ -226,9 +226,9 @@ mod tests {
         assert!(crate::approve(&owner, &spender, amount));
         assert_eq!(crate::allowance(&owner, &spender), amount);
 
-        let amount2: U128 = 50;
+        let amount2: U128 = U128::new(50);
         handle.witness(&[spender.clone()]);
-        assert!(crate::transfer_from(&spender, &owner, amount2));
+        assert!(crate::transfer_from(&spender, &owner, &spender, amount2));
         assert_eq!(crate::allowance(&owner, &spender), amount - amount2);
         assert_eq!(crate::balance_of(&owner), amount - amount2);
         assert_eq!(crate::balance_of(&spender), amount2);
