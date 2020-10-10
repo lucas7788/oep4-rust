@@ -87,7 +87,6 @@ fn transfer_multi(states: &[(&Address, &Address, U128)]) -> bool {
 */
 fn approve(owner: &Address, spender: &Address, amount: U128) -> bool {
     assert!(runtime::check_witness(owner));
-    assert!(amount <= balance_of(owner));
     let allowance = allowance(owner, spender);
     let approve = amount + allowance;
     database::put(utils::gen_approve_key(owner, spender), approve);
