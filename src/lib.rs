@@ -48,7 +48,6 @@ fn balance_of(addr: &Address) -> U128 {
 fn transfer(from: &Address, to: &Address, amount: U128) -> bool {
     assert!(runtime::check_witness(from));
     let frmbal = balance_of(from);
-    let tobal = balance_of(to);
     if amount == 0 || frmbal < amount {
         return false;
     }
@@ -57,6 +56,7 @@ fn transfer(from: &Address, to: &Address, amount: U128) -> bool {
     } else {
         database::put(utils::gen_balance_key(from), frmbal - amount);
     }
+    let tobal = balance_of(to);
     database::put(utils::gen_balance_key(to), tobal + amount);
     EventBuilder::new()
         .bytearray("transfer".as_bytes())
