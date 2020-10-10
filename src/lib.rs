@@ -8,10 +8,11 @@ use ostd::types::u128_to_neo_bytes;
 use ostd::{database, runtime};
 
 const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
-const NAME: &str = "Honor value";
+const NAME: &str = "OpenKG Honor value";
 const SYMBOL: &str = "HV";
 const TOTAL_SUPPLY: U128 = U128::new(100_000_000_000);
 const DECIMAL_MULTIPLIER: U128 = U128::new(100_000_000);
+const DECIMAL: u8 = 8;
 
 const KEY_BALANCE: &[u8] = b"01";
 const KEY_APPROVE: &[u8] = b"02";
@@ -157,7 +158,7 @@ pub fn invoke() {
         b"init" => sink.write(initialize()),
         b"name" => sink.write(NAME),
         b"symbol" => sink.write(SYMBOL),
-        b"decimal" => sink.write(DECIMAL_MULTIPLIER),
+        b"decimal" => sink.write(DECIMAL),
         b"totalSupply" => sink.write(total_supply()),
         b"balanceOf" => {
             let addr = source.read().unwrap();
