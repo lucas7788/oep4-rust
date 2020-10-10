@@ -87,9 +87,12 @@ fn transfer_multi(states: &[(&Address, &Address, U128)]) -> bool {
 */
 fn approve(owner: &Address, spender: &Address, amount: U128) -> bool {
     assert!(runtime::check_witness(owner));
-    let allowance = allowance(owner, spender);
-    let approve = amount + allowance;
-    database::put(utils::gen_approve_key(owner, spender), approve);
+    let approve_key = utils::gen_approve_key(owner, spender);
+    if amount == 0 {
+        database::delete(approve_key.as_slice());
+    } else {
+        database::put(approve_key.as_slice(), amount);
+    }
     EventBuilder::new()
         .bytearray("approve".as_bytes())
         .bytearray(owner.as_bytes())
@@ -116,7 +119,7 @@ fn allowance(owner: &Address, spender: &Address) -> U128 {
     :param amount: The amounts of tokens being transferred
     Returns True on success, otherwise raises an exception
 */
-fn transfer_from(spender: &Address, from: &Address, amount: U128) -> bool {
+fn transfer_from(spender: &Address, from: &Address, to:&Address, amount: U128) -> bool {
     assert!(runtime::check_witness(spender));
     let allowance = allowance(from, spender);
     assert!(amount <= allowance);
@@ -128,8 +131,8 @@ fn transfer_from(spender: &Address, from: &Address, amount: U128) -> bool {
         database::put(utils::gen_approve_key(from, spender), allowance - amount);
     }
 
-    let spender_balance = balance_of(spender);
-    database::put(utils::gen_balance_key(spender), spender_balance + amount);
+    let to_balance = balance_of(to);
+    database::put(utils::gen_balance_key(spender), to_balance + amount);
     if from_balance == amount {
         database::delete(utils::gen_balance_key(from));
     } else {
@@ -177,8 +180,8 @@ pub fn invoke() {
             sink.write(allowance(owner, spender));
         }
         b"transferFrom" => {
-            let (spender, from, amount) = source.read().unwrap();
-            sink.write(transfer_from(spender, from, amount));
+            let (spender, from,to, amount) = source.read().unwrap();
+            sink.write(transfer_from(spender, from,to,amount));
         }
         _ => panic!("unsupported action!"),
     }
